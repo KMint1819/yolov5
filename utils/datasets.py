@@ -23,6 +23,7 @@ from tqdm import tqdm
 from utils.general import check_requirements, xyxy2xywh, xywh2xyxy, xywhn2xyxy, xyn2xy, segment2box, segments2boxes, \
     resample_segments, clean_str
 from utils.torch_utils import torch_distributed_zero_first
+from myutils.image_cutter import imageCut
 
 # Parameters
 help_url = 'https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'
@@ -118,6 +119,55 @@ class _RepeatSampler(object):
         while True:
             yield from iter(self.sampler)
 
+class LoadRiceImages:
+    def __init__(self, path, img_size=640, img_stride=None, stride=32):
+        p = str(Path(path).absolute())  # os-agnostic absolute path
+        if '*' in p:
+            files = sorted(glob.glob(p, recursive=True))  # glob
+        elif os.path.isdir(p):
+            files = sorted(glob.glob(os.path.join(p, '*.*')))  # dir
+        elif os.path.isfile(p):
+            files = [p]  # files
+        else:
+            raise Exception(f'ERROR: {p} does not exist')
+
+        images = [x for x in files if x.split('.')[-1].lower() in img_formats]
+        ni = len(images)
+
+        self.img_size = img_size
+        self.stride = stride
+        self.img_stride = img_stride
+        self.files = images
+        self.nf = ni  # number of files
+        self.mode = 'image'
+        self.cap = None
+        assert self.nf > 0, f'No images or videos found in {p}. ' \
+                            f'Supported formats are:\nimages: {img_formats}\nvideos: {vid_formats}'
+
+    def __iter__(self):
+        self.count = 0
+        return self
+
+    def __next__(self):
+        if self.count == self.nf:
+            raise StopIteration
+        path = self.files[self.count]
+
+        # Read image
+        self.count += 1
+        imgs0 = imageCut(path, stride=self.img_stride)
+        print(f'image {self.count}/{self.nf}, {imgs0.shape[0]}x{imgs0.shape[1]} slices, {path}: \n', end='')
+
+        imgs = np.empty((imgs0.shape[0], imgs0.shape[1]), dtype=object)
+        for r in range(imgs0.shape[0]):
+            for c in range(imgs0.shape[1]):
+                img = letterbox(imgs0[r, c], self.img_size, stride=self.stride)[0]
+                imgs[r, c] = np.ascontiguousarray(img[:, :, ::-1].transpose(2, 0, 1))  # BGR to RGB, to 3x416x416
+
+        return path, imgs, imgs0, self.cap
+
+    def __len__(self):
+        return self.nf  # number of files
 
 class LoadImages:  # for inference
     def __init__(self, path, img_size=640, stride=32):
@@ -186,6 +236,7 @@ class LoadImages:  # for inference
 
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
+        
         img = np.ascontiguousarray(img)
 
         return path, img, img0, self.cap
@@ -250,6 +301,7 @@ class LoadWebcam:  # for inference
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
+        
 
         return img_path, img, img0, None
 
@@ -490,14 +542,14 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 x[im_file] = [l, shape, segments]
             except Exception as e:
                 nc += 1
-                logging.info(f'{prefix}WARNING: Ignoring corrupted image and/or label {im_file}: {e}')
+                print(f'{prefix}WARNING: Ignoring corrupted image and/or label {im_file}: {e}')
 
             pbar.desc = f"{prefix}Scanning '{path.parent / path.stem}' images and labels... " \
                         f"{nf} found, {nm} missing, {ne} empty, {nc} corrupted"
         pbar.close()
 
         if nf == 0:
-            logging.info(f'{prefix}WARNING: No labels found in {path}. See {help_url}')
+            print(f'{prefix}WARNING: No labels found in {path}. See {help_url}')
 
         x['hash'] = get_hash(self.label_files + self.img_files)
         x['results'] = nf, nm, ne, nc, i + 1
