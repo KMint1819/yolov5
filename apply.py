@@ -139,20 +139,13 @@ def apply(opt):
         coords[:, 1] *= scale_x
         coords[:, 2] *= scale_y
         coords = np.around(coords).astype(int)
-        if opt.tolerance:
-            tol = opt.tolerance
-        else:
-            if img_type == "i":
-                tol = 25
-            elif img_type == "d":
-                tol = 50
-        print("before:", coords.shape)
-        coords = filter_too_close(coords, tolerance = tol)
-        print("after:", coords.shape)
+        tol = opt.tol_i if img_type == "i" else opt.tol_d
         v_grid_starts *= scale_x
         h_grid_starts *= scale_y
         v_grid_starts, h_grid_starts = np.around(v_grid_starts).astype(int), np.around(h_grid_starts).astype(int)
         gt_path = path.parent / f"{path.stem}.csv"
+        if img_type == "d":
+            coords = filter_too_close(coords, tolerance=tol, h_axis=h_grid_starts, v_axis=v_grid_starts, axis_expand=opt.axis_expand)
         if save_txt:
             with open(txt_path, "w") as f:
                 np.savetxt(f, coords[:, 1:], fmt="%d", delimiter=",")
@@ -170,7 +163,7 @@ def apply(opt):
                 if not opt.hide_conf:
                     # print(conf)
                     ori_img = cv2.putText(ori_img, f"{conf}%", (x, y - 3), 0, 1, (255, 255, 0), 2)
-                ori_img = cv2.circle(ori_img, (x, y), 3, (255, 0, 0), 8)
+                ori_img = cv2.circle(ori_img, (x, y), 4, (255, 0, 0), -1)
 
             cv2.imwrite(save_path, ori_img)
     if save_txt or save_img:
@@ -204,7 +197,9 @@ if __name__ == '__main__':
     parser.add_argument('--hide-labels', action='store_true', default=False, help='hide labels')
     parser.add_argument('--hide-conf', action='store_true', default=False, help='hide confidences')
     parser.add_argument('--grid', action='store_true', default=False, help='draw grid lines')
-    parser.add_argument('--tolerance', default=None, type=int, help='tolerance of close points(pixels)')
+    parser.add_argument('--tol-i', default=25, type=int, help='tolerance of close points for i image(pixels)')
+    parser.add_argument('--tol-d', default=40, type=int, help='tolerance of close points for d image(pixels)')
+    parser.add_argument('--axis-expand', default=30, type=int, help='width of axis to merge')
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
