@@ -48,6 +48,7 @@ def train(hyp, opt, device, tb_writer=None):
     wdir.mkdir(parents=True, exist_ok=True)  # make dir
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
+    weight = wdir / "best_weight.pt"
     results_file = save_dir / 'results.txt'
 
     # Save run settings
@@ -400,6 +401,8 @@ def train(hyp, opt, device, tb_writer=None):
                 torch.save(ckpt, last)
                 if best_fitness == fi:
                     torch.save(ckpt, best)
+                    weight_only = {"model": ckpt["model"]}
+                    torch.save(weight_only, weight)
                 if wandb_logger.wandb:
                     if ((epoch + 1) % opt.save_period == 0 and not final_epoch) and opt.save_period != -1:
                         wandb_logger.log_model(

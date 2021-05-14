@@ -1,9 +1,15 @@
 # python apply.py \
-# --weights all_stride0_box10-20.pt \
+# --weights weights/all_stride0_box10-20.pt \
 # --source dataset/raw/test/test_public \
-# --conf-thres 0.25 \
-# --iou-thres 0.45 \
-# --grid
+# --conf-thres-d 0.25 \
+# --conf-thres-i 0.15 \
+# --iou-thres 0.20 \
+# --tol-i 15 \
+# --tol-d 40 \
+# --axis-expand-d 30 \
+# --axis-expand-i 10 \
+# --grid \
+# --hide-c
 
 
 import argparse
@@ -16,6 +22,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
 import numpy as np
+import json
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadRiceImages
@@ -33,8 +40,8 @@ def apply(opt):
     # Directories
     save_dir = increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok)  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
-    with (save_dir / f"{Path(opt.source).name}.txt").open("w") as f:
-        f.write(str(opt))
+    with (save_dir / f"params_{Path(opt.source).name}.json").open("w") as f:
+        f.write(json.dumps(opt.__dict__, indent=4))
 
     # Initialize
     set_logging()
@@ -66,6 +73,7 @@ def apply(opt):
         img_type = str(path.name)[0].lower()
         for r in range(imgs.shape[0]):
             for c in range(imgs.shape[1]):
+                conf = opt.conf_thres_i if img_type == "i" else opt.conf_thres_d
                 img = imgs[r, c]
                 im0s = imgs0[r, c]
                 img = torch.from_numpy(img).to(device)
@@ -79,7 +87,7 @@ def apply(opt):
                 pred = model(img, augment=opt.augment)[0]
 
                 # Apply NMS
-                pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
+                pred = non_max_suppression(pred, conf, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
                 t2 = time_synchronized()
 
                 # Process detections
@@ -140,12 +148,12 @@ def apply(opt):
         coords[:, 2] *= scale_y
         coords = np.around(coords).astype(int)
         tol = opt.tol_i if img_type == "i" else opt.tol_d
+        axis_expand = opt.axis_expand_i if img_type == "i" else opt.axis_expand_d
         v_grid_starts *= scale_x
         h_grid_starts *= scale_y
         v_grid_starts, h_grid_starts = np.around(v_grid_starts).astype(int), np.around(h_grid_starts).astype(int)
         gt_path = path.parent / f"{path.stem}.csv"
-        if img_type == "d":
-            coords = filter_too_close(coords, tolerance=tol, h_axis=h_grid_starts, v_axis=v_grid_starts, axis_expand=opt.axis_expand)
+        coords = filter_too_close(coords, tolerance=tol, h_axis=h_grid_starts, v_axis=v_grid_starts, axis_expand=axis_expand)
         if save_txt:
             with open(txt_path, "w") as f:
                 np.savetxt(f, coords[:, 1:], fmt="%d", delimiter=",")
@@ -178,7 +186,8 @@ if __name__ == '__main__':
     parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default='data/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
+    parser.add_argument('--conf-thres-d', type=float, default=0.25, help='object confidence threshold')
+    parser.add_argument('--conf-thres-i', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
@@ -197,11 +206,12 @@ if __name__ == '__main__':
     parser.add_argument('--hide-labels', action='store_true', default=False, help='hide labels')
     parser.add_argument('--hide-conf', action='store_true', default=False, help='hide confidences')
     parser.add_argument('--grid', action='store_true', default=False, help='draw grid lines')
-    parser.add_argument('--tol-i', default=25, type=int, help='tolerance of close points for i image(pixels)')
+    parser.add_argument('--tol-i', default=15, type=int, help='tolerance of close points for i image(pixels)')
     parser.add_argument('--tol-d', default=40, type=int, help='tolerance of close points for d image(pixels)')
-    parser.add_argument('--axis-expand', default=30, type=int, help='width of axis to merge')
+    parser.add_argument('--axis-expand-d', default=30, type=int, help='width of axis to merge')
+    parser.add_argument('--axis-expand-i', default=10, type=int, help='width of axis to merge')
     opt = parser.parse_args()
-    print(opt)
+    
     check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
 
     with torch.no_grad():
