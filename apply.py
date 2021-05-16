@@ -11,7 +11,6 @@
 # --grid \
 # --hide-c
 
-
 import argparse
 import time
 from pathlib import Path
@@ -114,7 +113,10 @@ def apply(opt):
                                 x, y = x * im0.shape[1], y * im0.shape[0]
                                 x += c * im0.shape[1]
                                 y += r * im0.shape[0]
-                                coords.append(np.array((conf.cpu().item() * 100, x, y)))
+                                cl = cl.cpu()
+                                # Only append if the predicted class matches the img_type
+                                if (cl == 0 and img_type == "i") or (cl == 1 and img_type == "d"): 
+                                    coords.append(np.array((conf.cpu().item() * 100, x, y, cl)))
 
                             # if save_img or view_img:  # Add bbox to image
                             #     c = int(cls)  # integer class
@@ -156,7 +158,7 @@ def apply(opt):
         coords = filter_too_close(coords, tolerance=tol, h_axis=h_grid_starts, v_axis=v_grid_starts, axis_expand=axis_expand)
         if save_txt:
             with open(txt_path, "w") as f:
-                np.savetxt(f, coords[:, 1:], fmt="%d", delimiter=",")
+                np.savetxt(f, coords[:, 1:3], fmt="%d", delimiter=",")
         if save_img:
             if opt.grid:
                 for v_grid_start in v_grid_starts:
@@ -167,11 +169,15 @@ def apply(opt):
                 gts = np.loadtxt(gt_path, dtype=int, delimiter=",", ndmin=2)
                 for x, y in gts:
                     ori_img = cv2.circle(ori_img, (x, y), 9, (255, 255, 255), 2)
-            for conf, x, y in coords:
+            for conf, x, y, cl in coords:
+                if cl == 0:
+                    circle_color = (255, 0, 0)
+                elif cl == 1:
+                    circle_color = (0, 0, 255)
                 if not opt.hide_conf:
                     # print(conf)
                     ori_img = cv2.putText(ori_img, f"{conf}%", (x, y - 3), 0, 1, (255, 255, 0), 2)
-                ori_img = cv2.circle(ori_img, (x, y), 4, (255, 0, 0), -1)
+                ori_img = cv2.circle(ori_img, (x, y), 4, circle_color, -1)
 
             cv2.imwrite(save_path, ori_img)
     if save_txt or save_img:

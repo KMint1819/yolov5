@@ -4,9 +4,11 @@ import argparse
 import shutil
 
 # Only one side, so the width is expand * 2
-expand_i = 10
-expand_d = 20
+
 def csv_to_yolo(opt):
+    expand_i = opt.expand_i
+    expand_d = opt.expand_d
+
     out_dir = Path.cwd() / "out_yolo"
     img_out_d = out_dir / "images"
     lbl_out_d = out_dir / "labels"
@@ -36,6 +38,8 @@ def csv_to_yolo(opt):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--path", required=True, help="Path to dir of images and csvs")
+    parser.add_argument("-i", "--expand-i", default=15, type=int, help="BBox for i image")
+    parser.add_argument("-d", "--expand-d", default=20, type=int, help="BBox for d image")
     opt = parser.parse_args()
     opt.path = Path(opt.path)
     csv_to_yolo(opt)

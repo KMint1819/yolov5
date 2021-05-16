@@ -9,25 +9,25 @@ TOLERANCE = 30
 
 def filter_too_close(arr, tolerance=TOLERANCE, h_axis=None, v_axis=None, axis_expand=30):
     assert arr.ndim == 2, "arr should be a 2d-array"
-    assert arr.shape[1] == 3, f"axis 1 should be (conf, x, y), given {arr.shape}"
+    assert arr.shape[1] == 4, f"axis 1 should be (conf, x, y, cl), given {arr.shape}"
     data = []
     ori_data = []
     if h_axis is not None and v_axis is not None:
-        for conf, x, y in arr:
+        for conf, x, y, cl in arr:
             appended = False
             for h in h_axis:
                 if np.abs(h - y) < axis_expand:
-                    data.append(np.array((conf, x, y), dtype=int))
+                    data.append(np.array((conf, x, y, cl), dtype=int))
                     appended = True
                     break
             if not appended:
                 for v in v_axis:
                     if np.abs(x - v) < axis_expand:
-                        data.append(np.array((conf, x, y), dtype=int))
+                        data.append(np.array((conf, x, y, cl), dtype=int))
                         appended = True
                         break
             if not appended:
-                ori_data.append(np.array((conf, x, y), dtype=int))
+                ori_data.append(np.array((conf, x, y, cl), dtype=int))
     else:
         data = arr
     ori_data = np.array(ori_data, dtype=int)
