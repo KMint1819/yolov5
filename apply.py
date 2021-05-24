@@ -14,22 +14,19 @@
 import argparse
 import time
 from pathlib import Path
-import sys 
 
 import cv2
 import torch
-import torch.backends.cudnn as cudnn
-from numpy import random
 import numpy as np
 import json
 
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadRiceImages
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, save_one_box
-from utils.plots import colors, plot_one_box
-from utils.torch_utils import select_device, load_classifier, time_synchronized
-from myutils.filter import filter_too_close
+from utils.datasets import LoadRiceImages
+from utils.general import check_img_size, check_requirements, non_max_suppression, \
+    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
+from utils.torch_utils import select_device, time_synchronized
+from myutils.filter import filter_too_close, filter_border
+from myutils.draw import draw_border, draw_grid
 
 
 def apply(opt):
@@ -149,22 +146,22 @@ def apply(opt):
         coords[:, 1] *= scale_x
         coords[:, 2] *= scale_y
         coords = np.around(coords).astype(int)
-        tol = opt.tol_i if img_type == "i" else opt.tol_d
-        axis_expand = opt.axis_expand_i if img_type == "i" else opt.axis_expand_d
+        close_tol = opt.close_i if img_type == "i" else opt.close_d
         v_grid_starts *= scale_x
         h_grid_starts *= scale_y
         v_grid_starts, h_grid_starts = np.around(v_grid_starts).astype(int), np.around(h_grid_starts).astype(int)
+        axis_expand = opt.axis_expand_i if img_type == "i" else opt.axis_expand_d
+        coords = filter_too_close(coords, tolerance=close_tol, h_axis=h_grid_starts, v_axis=v_grid_starts, axis_expand=axis_expand)
+        coords = filter_border(coords, ori_img.shape, tolerance=opt.border)
         gt_path = path.parent / f"{path.stem}.csv"
-        coords = filter_too_close(coords, tolerance=tol, h_axis=h_grid_starts, v_axis=v_grid_starts, axis_expand=axis_expand)
         if save_txt:
             with open(txt_path, "w") as f:
                 np.savetxt(f, coords[:, 1:3], fmt="%d", delimiter=",")
         if save_img:
+            if "border" in vars(opt) and opt.border > 0:
+                ori_img = draw_border(ori_img, opt.border)
             if opt.grid:
-                for v_grid_start in v_grid_starts:
-                    ori_img = cv2.line(ori_img, (v_grid_start, 0), (v_grid_start, ori_img.shape[0] - 1), (0, 0, 0), 2)
-                for h_grid_start in h_grid_starts:
-                    ori_img = cv2.line(ori_img, (0, h_grid_start), (ori_img.shape[1] - 1, h_grid_start), (0, 0, 0), 2)
+                ori_img = draw_grid(ori_img, v_grid_starts, h_grid_starts)
             if opt.with_gt:
                 gts = np.loadtxt(gt_path, dtype=int, delimiter=",", ndmin=2)
                 for x, y in gts:
@@ -212,8 +209,9 @@ if __name__ == '__main__':
     parser.add_argument('--hide-labels', action='store_true', default=False, help='hide labels')
     parser.add_argument('--hide-conf', action='store_true', default=False, help='hide confidences')
     parser.add_argument('--grid', action='store_true', default=False, help='draw grid lines')
-    parser.add_argument('--tol-i', default=15, type=int, help='tolerance of close points for i image(pixels)')
-    parser.add_argument('--tol-d', default=40, type=int, help='tolerance of close points for d image(pixels)')
+    parser.add_argument("--border", type=int, default=0, help="width of the border to be removed")
+    parser.add_argument('--close-i', default=15, type=int, help='tolerance of close points for i image(pixels)')
+    parser.add_argument('--close-d', default=40, type=int, help='tolerance of close points for d image(pixels)')
     parser.add_argument('--axis-expand-d', default=30, type=int, help='width of axis to merge')
     parser.add_argument('--axis-expand-i', default=10, type=int, help='width of axis to merge')
     opt = parser.parse_args()

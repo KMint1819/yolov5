@@ -60,6 +60,29 @@ def filter_too_close(arr, tolerance=TOLERANCE, h_axis=None, v_axis=None, axis_ex
     return all_points
     # return data, clustered_points
 
+def filter_border(arr, im_shape, tolerance = 5):
+    if tolerance == 0:
+        return arr
+    assert arr.ndim == 2, "arr should be a 2d-array"
+    assert arr.shape[1] == 4, f"axis 1 should be (conf, x, y, cl), given {arr.shape}"
+
+    def is_in_border(x, y):
+        if x - tolerance <= 0:
+            return True
+        if x + tolerance >= im_shape[1] - 1:
+            return True
+        if y - tolerance <= 0:
+            return True
+        if y + tolerance >= im_shape[0] - 1:
+            return True
+        return False
+    out_arr = []
+    for conf, x, y, cl in arr:
+        if not is_in_border(x, y):
+            out_arr.append(np.array((conf, x, y, cl), dtype=int))
+    return np.array(out_arr, dtype=int)
+
+
 if __name__ == "__main__":
     img = cv2.imread("/media/kmint/hdd/data/projects/yolov5/dataset/raw/test/test_sub/DSC080633.JPG")
     label = np.loadtxt("/media/kmint/hdd/data/projects/yolov5/uploads/05121337/uploads/DSC080633.csv", delimiter=",", ndmin=2, dtype=int)

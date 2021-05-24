@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
+from myutils.general import loadcsv
 
 def visualize(opt):
     out_dir = Path.cwd() / "out_visualize"
@@ -31,4 +32,5 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--path", type=str, required=True)
     opt = parser.parse_args()
     opt.path = Path(opt.path)
-    visualize(opt)
+    print(opt)
+    # visualize(opt)

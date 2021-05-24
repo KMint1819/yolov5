@@ -1,30 +1,21 @@
 import cv2
 import numpy as np
+from pathlib import Path
+from utils.general import increment_path
 
-def nothing(a):
-    pass
+out_dir = Path.cwd() / "runs/test_color/exp"
+out_dir = increment_path(out_dir, exist_ok=False)
 
-cv2.namedWindow('bars')
-cv2.createTrackbar("h", "bars", 0, 255, nothing)
-cv2.createTrackbar("s", "bars", 0, 255, nothing)
-cv2.createTrackbar("v", "bars", 0, 255, nothing)
+# from utils.datasets import augment_hsv
 
-img = np.zeros((100, 100, 3), dtype=np.uint8)
-while True:
-    # print(img.shape)
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    h = cv2.getTrackbarPos("h", "bars")
-    s = cv2.getTrackbarPos("s", "bars")
-    v = cv2.getTrackbarPos("v", "bars")
-    # print(h, s, v)
-    img[:, :, 0] = h
-    img[:, :, 1] = s
-    img[:, :, 2] = v
-    img = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
-    cv2.imshow("frame", img)
-    if cv2.waitKey(5) == ord("q"):
-        break
-h = cv2.getTrackbarPos("h", "bars")
-s = cv2.getTrackbarPos("s", "bars")
-v = cv2.getTrackbarPos("v", "bars")
-print(h, s, v)
+img = cv2.imread("test.jpg")
+
+hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+lower_green = np.array([25, 4, 5])
+upper_green = np.array([77, 255, 255])
+mask = cv2.inRange(hsv, lower_green, upper_green)
+print(mask)
+# res = cv2.bitwise_and(img, img, mask=mask)
+# cv2.imshow('Input', img)
+# cv2.imshow('Result', res)
+# cv2.waitKey(0)
