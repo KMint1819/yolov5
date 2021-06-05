@@ -69,7 +69,7 @@ def apply(opt):
         img_type = str(path.name)[0].lower()
         for r in range(imgs.shape[0]):
             for c in range(imgs.shape[1]):
-                conf = opt.conf_thres_i if img_type == "i" else opt.conf_thres_d
+                conf = opt.i_conf_thres if img_type == "i" else opt.d_conf_thres
                 img = imgs[r, c]
                 im0s = imgs0[r, c]
                 img = torch.from_numpy(img).to(device)
@@ -146,11 +146,11 @@ def apply(opt):
         coords[:, 1] *= scale_x
         coords[:, 2] *= scale_y
         coords = np.around(coords).astype(int)
-        close_tol = opt.close_i if img_type == "i" else opt.close_d
+        close_tol = opt.i_close if img_type == "i" else opt.d_close
         v_grid_starts *= scale_x
         h_grid_starts *= scale_y
         v_grid_starts, h_grid_starts = np.around(v_grid_starts).astype(int), np.around(h_grid_starts).astype(int)
-        axis_expand = opt.axis_expand_i if img_type == "i" else opt.axis_expand_d
+        axis_expand = opt.i_axis_expand if img_type == "i" else opt.d_axis_expand
         coords = filter_too_close(coords, tolerance=close_tol, h_axis=h_grid_starts, v_axis=v_grid_starts, axis_expand=axis_expand)
         coords = filter_border(coords, ori_img.shape, tolerance=opt.border)
         gt_path = path.parent / f"{path.stem}.csv"
@@ -189,8 +189,8 @@ if __name__ == '__main__':
     parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default='data/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres-d', type=float, default=0.25, help='object confidence threshold')
-    parser.add_argument('--conf-thres-i', type=float, default=0.25, help='object confidence threshold')
+    parser.add_argument('--i-conf-thres', type=float, default=0.25, help='object confidence threshold')
+    parser.add_argument('--d-conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
@@ -210,10 +210,10 @@ if __name__ == '__main__':
     parser.add_argument('--hide-conf', action='store_true', default=False, help='hide confidences')
     parser.add_argument('--grid', action='store_true', default=False, help='draw grid lines')
     parser.add_argument("--border", type=int, default=0, help="width of the border to be removed")
-    parser.add_argument('--close-i', default=15, type=int, help='tolerance of close points for i image(pixels)')
-    parser.add_argument('--close-d', default=40, type=int, help='tolerance of close points for d image(pixels)')
-    parser.add_argument('--axis-expand-d', default=30, type=int, help='width of axis to merge')
-    parser.add_argument('--axis-expand-i', default=10, type=int, help='width of axis to merge')
+    parser.add_argument('--i-close', default=15, type=int, help='tolerance of close points for i image(pixels)')
+    parser.add_argument('--d-close', default=40, type=int, help='tolerance of close points for d image(pixels)')
+    parser.add_argument('--i-axis-expand', default=30, type=int, help='width of axis to merge')
+    parser.add_argument('--d-axis-expand', default=10, type=int, help='width of axis to merge')
     opt = parser.parse_args()
     
     check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
