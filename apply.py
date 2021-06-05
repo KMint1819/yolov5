@@ -73,7 +73,7 @@ def apply(opt):
         img_type = str(path.name)[0].lower()
         for r in range(imgs.shape[0]):
             for c in range(imgs.shape[1]):
-                conf = opt.i_conf_thres if img_type == "i" else opt.d_conf_thres
+                conf_thres = opt.i_conf_thres if img_type == "i" else opt.d_conf_thres
                 img = imgs[r, c]
                 im0s = imgs0[r, c]
                 img = torch.from_numpy(img).to(device)
@@ -87,7 +87,7 @@ def apply(opt):
                 pred = model(img, augment=opt.augment)[0]
 
                 # Apply NMS
-                pred = non_max_suppression(pred, conf, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
+                pred = non_max_suppression(pred, conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
                 t2 = time_synchronized()
 
                 # Process detections
