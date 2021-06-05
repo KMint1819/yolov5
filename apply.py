@@ -18,6 +18,7 @@ from pathlib import Path
 import cv2
 import torch
 import numpy as np
+import pandas as pd
 import json
 
 from models.experimental import attempt_load
@@ -36,6 +37,8 @@ def apply(opt):
     # Directories
     save_dir = increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok)  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    (save_dir / 'data' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)
+
     with (save_dir / f"params_{Path(opt.source).name}.json").open("w") as f:
         f.write(json.dumps(opt.__dict__, indent=4))
 
@@ -65,6 +68,7 @@ def apply(opt):
         ori_img = cv2.imread(str(path))
         save_path = str(save_dir / path.name)
         txt_path = str(save_dir / "labels" / f"{path.stem}.csv")
+        data_path = str(save_dir / "data" / f"{path.stem}.csv")
         coords = []
         img_type = str(path.name)[0].lower()
         for r in range(imgs.shape[0]):
@@ -114,7 +118,6 @@ def apply(opt):
                                 # Only append if the predicted class matches the img_type
                                 if (cl == 0 and img_type == "i") or (cl == 1 and img_type == "d"): 
                                     coords.append(np.array((conf.cpu().item() * 100, x, y, cl)))
-
                             # if save_img or view_img:  # Add bbox to image
                             #     c = int(cls)  # integer class
                             #     label = None if opt.hide_labels else (names[c] if opt.hide_conf else f'{names[c]} {conf:.2f}')
@@ -157,6 +160,8 @@ def apply(opt):
         if save_txt:
             with open(txt_path, "w") as f:
                 np.savetxt(f, coords[:, 1:3], fmt="%d", delimiter=",")
+            with open(data_path, "w") as f:
+                np.savetxt(f, coords[:, 0:3], fmt="%d", delimiter=",")
         if save_img:
             if "border" in vars(opt) and opt.border > 0:
                 ori_img = draw_border(ori_img, opt.border)

@@ -45,7 +45,7 @@ def filter_too_close(arr, tolerance=TOLERANCE, h_axis=None, v_axis=None, axis_ex
             if clustered_points is None:
                 clustered_points = data[idx]
             else:
-                clustered_points = np.concatenate((clustered_points, data[idx]), axis=0, dtype=int)
+                clustered_points = np.concatenate((clustered_points, data[idx]), axis=0).astype(int)
         else:
             # print("data[idx]:", data[idx])
             mid_point = np.mean(data[idx], axis=0, dtype=int, keepdims=True)
@@ -53,10 +53,10 @@ def filter_too_close(arr, tolerance=TOLERANCE, h_axis=None, v_axis=None, axis_ex
             if clustered_points is None:
                 clustered_points = mid_point
             else:
-                clustered_points = np.concatenate((clustered_points, mid_point), axis=0, dtype=int)
+                clustered_points = np.concatenate((clustered_points, mid_point), axis=0).astype(int)
     # print(clustered_points)
     clustered_points = np.around(np.array(clustered_points, dtype=int)).astype(int)
-    all_points = np.concatenate((ori_data, clustered_points), axis=0, dtype=int)
+    all_points = np.concatenate((ori_data, clustered_points), axis=0).astype(int)
     return all_points
     # return data, clustered_points
 
