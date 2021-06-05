@@ -5,11 +5,11 @@ import argparse
 
 # IMG_SHAPE = (256, 256)
 IMG_SHAPE = (640, 640)
-D_IMG_SHAPE = (1920, 2560)  # (2000, 3000)
-I_IMG_SHAPE = (1920, 2560)  # (1728, 2304)
+# D_IMG_SHAPE = (2560, 3200)  # (2000, 3000)
+# I_IMG_SHAPE = (2560, 3200)  # (1728, 2304)
 
 
-def imageCut(p, with_label=False, with_circle=False, stride=None):
+def imageCut(p, dshape, ishape, with_label=False, with_circle=False, stride=None):
     """Cut the image and label accordingly
 
     Args:
@@ -24,13 +24,13 @@ def imageCut(p, with_label=False, with_circle=False, stride=None):
 
     img = cv2.imread(str(p))
     if img.shape[0] == 2000:
-        scale_y = D_IMG_SHAPE[0] / img.shape[0]
-        scale_x = D_IMG_SHAPE[1] / img.shape[1]
-        img = cv2.resize(img, (D_IMG_SHAPE[1], D_IMG_SHAPE[0]))
+        scale_y = dshape[0] / img.shape[0]
+        scale_x = dshape[1] / img.shape[1]
+        img = cv2.resize(img, (dshape[1], dshape[0]))
     else:
-        scale_y = I_IMG_SHAPE[0] / img.shape[0]
-        scale_x = I_IMG_SHAPE[1] / img.shape[1]
-        img = cv2.resize(img, (I_IMG_SHAPE[1], I_IMG_SHAPE[0]))
+        scale_y = ishape[0] / img.shape[0]
+        scale_x = ishape[1] / img.shape[1]
+        img = cv2.resize(img, (ishape[1], ishape[0]))
     shape = IMG_SHAPE
 
     if with_label:
@@ -67,20 +67,22 @@ def imageCut(p, with_label=False, with_circle=False, stride=None):
             if with_label:
                 for x, y in label:
                     if y >= r_idx and y < r_idx + shape[0] and x >= c_idx and x < c_idx + shape[1]:
-                        tmp_lbl = np.around(np.array((x - c_idx, y - r_idx))).astype(int)
+                        tmp_lbl = np.around(
+                            np.array((x - c_idx, y - r_idx))).astype(int)
                         col_label.append(tmp_lbl)
                 labels[r, c] = col_label
-            
+
             if with_circle:
                 for x, y in col_label:
-                    imgs[r, c] = cv2.circle(imgs[r, c], (x, y), 2, (0, 0, 255), 5)
+                    imgs[r, c] = cv2.circle(
+                        imgs[r, c], (x, y), 2, (0, 0, 255), 5)
 
     if with_label:
         return imgs, labels
     return imgs
 
 
-def cutDatasetAndSave(p: str, output_dir: str, stride=None, with_label=False, with_circle=False):
+def cutDatasetAndSave(p: str, output_dir: str, dshape, ishape, stride=None, with_label=False, with_circle=False):
     p = Path(p)
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True)
@@ -90,7 +92,7 @@ def cutDatasetAndSave(p: str, output_dir: str, stride=None, with_label=False, wi
             print("Cutting", img_p)
             if with_label:
                 small_imgs, small_labels = imageCut(
-                    img_p, stride=stride, with_label=True, with_circle=with_circle)
+                    img_p, stride=stride, with_label=True, with_circle=with_circle, dshape=dshape, ishape=ishape)
                 for i in range(small_imgs.shape[0]):
                     for j in range(small_imgs.shape[1]):
                         small_img = small_imgs[i, j]
@@ -101,7 +103,7 @@ def cutDatasetAndSave(p: str, output_dir: str, stride=None, with_label=False, wi
                             str(out_dir / f"{pre}.csv"), small_label, delimiter=",", fmt="%d")
             else:
                 small_imgs = imageCut(
-                    img_p, stride=stride, with_label=False, with_circle=with_circle)
+                    img_p, stride=stride, with_label=False, with_circle=with_circle, dshape=dshape, ishape=ishape)
                 for i in range(small_imgs.shape[0]):
                     for j in range(small_imgs.shape[1]):
                         small_img = small_imgs[i, j]
@@ -125,6 +127,19 @@ if __name__ == "__main__":
 
     parser.add_argument("-circle", "--with_circle", action="store_true", default=False,
                         help="Add this flag if you want to draw the circles according to the labels")
+
+    parser.add_argument("-dsh", "--dshape", type=str, default='1920,2560',
+                        help="shape for d image to be resized to. format is '1920,2560'")
+
+    parser.add_argument("-ish", "--ishape", type=str, default='1920,2560',
+                        help="shape for i image to be resized to. format is '1920,2560'")
+
     opt = parser.parse_args()
+    spt = opt.dshape.split(',')
+    opt.dshape = (int(spt[0]), int(spt[1]))
+    spt = opt.ishape.split(',')
+    opt.ishape = (int(spt[0]), int(spt[1]))
+
     cutDatasetAndSave(opt.input, opt.output, stride=opt.stride,
-                      with_label=opt.with_label, with_circle=opt.with_circle)
+                      with_label=opt.with_label, with_circle=opt.with_circle,
+                      dshape=opt.dshape, ishape=opt.ishape)
