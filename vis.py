@@ -1,32 +1,71 @@
 from pathlib import Path
 import argparse
 import numpy as np
-from cv2 import cv2
+import cv2 as cv
 from myutils.general import loadcsv
 
 IMG_TYPES = [".jpg", ".png"]
-test_dir = Path.cwd() / "dataset/raw/test/"
+test_dir = Path.cwd() / "dataset/raw/test"
 
-def nothing(x):
-    pass
 
-# cv2.namedWindow('trackbars')
-cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
-cv2.resizeWindow('frame', (720, 1080))
-cv2.createTrackbar('threshold', 'frame', 0, 100, nothing)
-cv2.setTrackbarPos('threshold', 'frame', 30)
-cv2.createTrackbar('font size', 'frame', 0, 200, nothing)
-cv2.setTrackbarPos('font size', 'frame', 50)
+
+ori_img = None
+painted = None
+labels = None
+def on_threshold_changed(x):
+    global painted
+    painted = repaint(ori_img.copy(), labels)
+
+# cv.namedWindow('trackbars')
+cv.namedWindow('frame', cv.WINDOW_NORMAL)
+cv.resizeWindow('frame', (720, 1080))
+cv.createTrackbar('threshold', 'frame', 0, 100, on_threshold_changed)
+cv.setTrackbarPos('threshold', 'frame', 30)
+cv.createTrackbar('font size', 'frame', 0, 200, on_threshold_changed)
+cv.setTrackbarPos('font size', 'frame', 50)
+
+
 def get_thres():
-    return cv2.getTrackbarPos('threshold', 'frame')
+    return cv.getTrackbarPos('threshold', 'frame')
+
+
 def get_font_size():
-    return cv2.getTrackbarPos('font size', 'frame') / 100
+    return cv.getTrackbarPos('font size', 'frame') / 100
+
+
+def repaint(img, labels):
+    painted = img
+    if labels.shape[1] == 3:
+        print("threshold:", get_thres())
+        labels = labels[labels[:, 0] > get_thres()]
+        for conf, x, y in labels:
+            painted = cv.circle(painted, (x, y), 4, (255, 0, 0), -1)
+            painted = cv.putText(painted,
+                                    str(conf),
+                                    (x, y - 3),
+                                    cv.FONT_HERSHEY_SIMPLEX,
+                                    get_font_size(),
+                                    (153, 0, 204),
+                                    np.round(
+                                        1 + (get_font_size() - 0.5) * 1.8).astype(int),
+                                    cv.LINE_AA)
+    elif labels.shape[1] == 2:
+        for x, y in labels:
+            painted = cv.circle(painted, (x, y), 4, (255, 0, 0), -1)
+    return painted
+
+
 
 def main(opt):
+    global ori_img, painted, labels
     img_list = [p for p in opt.dir.iterdir() if p.suffix.lower() in IMG_TYPES]
-    idx = 0
     n_imgs = len(img_list)
+    idx = 0
+    ori_img = cv.imread(str(img_list[idx]))
+    label_p = opt.labels / f"{img_list[idx].stem}.csv"
+    labels = loadcsv(label_p)
     with_label = False
+    painted = repaint(ori_img.copy(), labels)
     print("Controls:")
     print("     a: previous")
     print("     d: next")
@@ -35,40 +74,27 @@ def main(opt):
     print("     e: with/without labels")
     print("     q: quit")
     while True:
-        img = cv2.imread(str(img_list[idx]))
         if with_label:
-            label_p = opt.labels / f"{img_list[idx].stem}.csv"
-            labels = loadcsv(str(label_p))
-            if labels.shape[1] == 3:
-                labels = labels[labels[:, 0] > get_thres()]
-                for conf, x, y in labels:
-                    img = cv2.circle(img, (x, y), 4, (255, 0, 0), -1)
-                    img = cv2.putText(img,
-                                        str(conf),
-                                        (x, y - 3),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        get_font_size(),
-                                        (153, 0, 204), 
-                                        np.round(1 + (get_font_size() - 0.5) * 1.8).astype(int), 
-                                        cv2.LINE_AA)
-            elif labels.shape[1] == 2:
-                for x, y in labels:
-                    img = cv2.circle(img, (x, y), 4, (255, 0, 0), -1)
-
-        cv2.imshow("frame", img)
-        key = cv2.waitKey(10)
-        if key == ord("a"):
-            if idx > 0:
+            cv.imshow("frame", painted)
+        else:
+            cv.imshow("frame", ori_img)
+        key = cv.waitKey(20)
+        if (key == ord("a") and idx > 0) or (key == ord("d") and idx < n_imgs - 1):
+            if key == ord('a') and idx > 0:
                 idx = idx - 1
-                print(str(img_list[idx]))
-        elif key == ord("d"):
-            if idx < n_imgs - 1:
+            elif key == ord("d") and idx < n_imgs - 1:
                 idx = idx + 1
-                print(str(img_list[idx]))
+            print(str(img_list[idx]))
+            label_p = opt.labels / f"{img_list[idx].stem}.csv"
+            labels = loadcsv(label_p)
+            ori_img = cv.imread(str(img_list[idx]))
+            painted = repaint(ori_img.copy(), labels)
         elif key == ord("w") and get_thres() < 100:
-            cv2.setTrackbarPos('threshold', 'frame', get_thres() + 1)    
+            cv.setTrackbarPos('threshold', 'frame', get_thres() + 1)
+            painted = repaint(ori_img.copy(), labels)
         elif key == ord("s") and get_thres() > 0:
-            cv2.setTrackbarPos('threshold', 'frame', get_thres() - 1)
+            cv.setTrackbarPos('threshold', 'frame', get_thres() - 1)
+            painted = repaint(ori_img.copy(), labels)
         elif key == ord("e"):
             with_label = not with_label
         elif key == ord("q"):
@@ -84,7 +110,11 @@ if __name__ == "__main__":
     opt = parser.parse_args()
     if not (Path.cwd() / (opt.dir)).is_dir():
         if opt.dir == "public":
-            opt.dir = test_dir / "test_public"
+            opt.dir = test_dir / "test_public_all"
+        elif opt.dir == "i":
+            opt.dir = test_dir / 'test_public/i'
+        elif opt.dir == "d":
+            opt.dir = test_dir / 'test_public/d'
         elif opt.dir == "private":
             opt.dir = test_dir / "test_private"
         elif opt.dir == "all":
