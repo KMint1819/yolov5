@@ -17,12 +17,14 @@ https://aidea-web.tw/topic/9c88c428-0aa7-480b-85e0-2d8fb2fcf3fc?focus=team
     - Cut without resizing
     - Larger bbox for d-img
     - Decrease weight of cls loss in total loss
-    - Add hsv augmentation to detect rice in very bright/dark situations
     - yolo 1280
+    - Train all
+
 - Tried and beneficial
     - Merge the edge
     - Decrease IOU threshold
     - Decrease conf threshold
+    - Add hsv augmentation to detect rice in very bright/dark situations
 
 - Tried but doesn't help
     - Use different detectors accordingly

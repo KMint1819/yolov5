@@ -1,6 +1,9 @@
 .vscode
 uploads/
 dataset/
+weights/lssh*
+weights/ncu*
+weights/gmail*
 # Repo-specific GitIgnore ----------------------------------------------------------------------------------------------
 # *.jpg
 # *.jpeg

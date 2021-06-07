@@ -57,7 +57,7 @@ def apply(opt):
 
     # Set Dataloader
     vid_path, vid_writer = None, None
-    dataset = LoadRiceImages(source, img_size=imgsz, stride=stride)
+    dataset = LoadRiceImages(source, img_size=imgsz, stride=stride, dshape=opt.dshape, ishape=opt.ishape)
 
     # Run inference
     if device.type != 'cpu':
@@ -219,8 +219,14 @@ if __name__ == '__main__':
     parser.add_argument('--d-close', default=40, type=int, help='tolerance of close points for d image(pixels)')
     parser.add_argument('--i-axis-expand', default=30, type=int, help='width of axis to merge')
     parser.add_argument('--d-axis-expand', default=10, type=int, help='width of axis to merge')
+    parser.add_argument('--ishape', default='1920,2560', type=str)
+    parser.add_argument('--dshape', default='1920,2560', type=str)
     opt = parser.parse_args()
-    
+    spt = opt.dshape.split(',')
+    opt.dshape = (int(spt[0]), int(spt[1]))
+    spt = opt.ishape.split(',')
+    opt.ishape = (int(spt[0]), int(spt[1]))
+
     check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
 
     with torch.no_grad():
