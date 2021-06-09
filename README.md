@@ -19,6 +19,7 @@ https://aidea-web.tw/topic/9c88c428-0aa7-480b-85e0-2d8fb2fcf3fc?focus=team
     - Decrease weight of cls loss in total loss
     - yolo 1280
     - Train all
+    - Use DBSCAN to filter extreme points
 
 - Tried and beneficial
     - Merge the edge
