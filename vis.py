@@ -8,13 +8,37 @@ IMG_TYPES = [".jpg", ".png"]
 test_dir = Path.cwd() / "dataset/raw/test"
 
 
-
 ori_img = None
 painted = None
 labels = None
+
+
+def repaint(img, labels):
+    painted = img
+    if labels.shape[1] == 3:
+        # print("threshold:", get_thres())
+        show_labels = labels[labels[:, 0] > get_thres()]
+        for conf, x, y in show_labels:
+            painted = cv.circle(painted, (x, y), 4, (255, 0, 0), -1)
+            painted = cv.putText(painted,
+                                 str(conf),
+                                 (x, y - 3),
+                                 cv.FONT_HERSHEY_SIMPLEX,
+                                 get_font_size(),
+                                 (153, 0, 204),
+                                 np.round(
+                                     1 + (get_font_size() - 0.5) * 1.8).astype(int),
+                                 cv.LINE_AA)
+    elif labels.shape[1] == 2:
+        for x, y in labels:
+            painted = cv.circle(painted, (x, y), 4, (255, 0, 0), -1)
+    return painted
+
+
 def on_threshold_changed(x):
     global painted
     painted = repaint(ori_img.copy(), labels)
+
 
 # cv.namedWindow('trackbars')
 cv.namedWindow('frame', cv.WINDOW_NORMAL)
@@ -33,27 +57,9 @@ def get_font_size():
     return cv.getTrackbarPos('font size', 'frame') / 100
 
 
-def repaint(img, labels):
-    painted = img
-    if labels.shape[1] == 3:
-        print("threshold:", get_thres())
-        labels = labels[labels[:, 0] > get_thres()]
-        for conf, x, y in labels:
-            painted = cv.circle(painted, (x, y), 4, (255, 0, 0), -1)
-            painted = cv.putText(painted,
-                                    str(conf),
-                                    (x, y - 3),
-                                    cv.FONT_HERSHEY_SIMPLEX,
-                                    get_font_size(),
-                                    (153, 0, 204),
-                                    np.round(
-                                        1 + (get_font_size() - 0.5) * 1.8).astype(int),
-                                    cv.LINE_AA)
-    elif labels.shape[1] == 2:
-        for x, y in labels:
-            painted = cv.circle(painted, (x, y), 4, (255, 0, 0), -1)
-    return painted
-
+def on_threshold_changed(x):
+    global painted
+    painted = repaint(ori_img.copy(), labels)
 
 
 def main(opt):
