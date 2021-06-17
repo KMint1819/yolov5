@@ -1,3 +1,7 @@
+other/
+lab/*
+!lab/*.py
+
 .vscode
 uploads/*
 !uploads/*.py

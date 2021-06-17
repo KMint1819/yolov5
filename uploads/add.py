@@ -29,7 +29,7 @@ def main(opt):
     shutil.copytree("empty_submit", out_dir / "upload")
     shutil.copytree(str(opt.exp_d), out_dir / opt.exp_d.name)
     
-    print("Packing", out_dir)
+    print(f"Packing {opt.exp_d} to {out_dir}")
     params_path = [p for p in out_dir.rglob("params*")][0]
     with params_path.open("r") as f:
         js = json.load(f)
@@ -38,7 +38,7 @@ def main(opt):
     for p in out_dir.glob("exp*/labels/*"):
         shutil.copy2(p, upload_dir)
     stride = input("stride of the dataset (default 0): ")
-    extra = input("Is extra set used, 1 for true, 0 for false (default 1): ")
+    extra = input("Is extra set used, 1 for true, 0 for false (default 0): ")
     box_i = input("box size for i image (default 15): ")
     box_d = input("box size for d image (default 20): ")
     ishape = input("ishape (default '1920,2560'): ")
@@ -63,15 +63,13 @@ def main(opt):
         str(f"border{js['border']}"),
         str(f"stride{stride}"),
         str(f"box{box_i}:{box_d}"),
-        str(f"close{js['i_close']}:{js['d_close']}"),
-        str(f"expand{js['i_axis_expand']}:{js['d_axis_expand']}")
     ]
     out_name = out_dir / "_".join(zip_name_splits)
-    shutil.make_archive(out_name, 'zip', out_dir)
+    shutil.make_archive(out_name, 'zip', upload_dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--exp_d', default=get_last_exp(), help=f"Directory of exp (default: {get_last_exp()})")
+    parser.add_argument('-d', '--exp_d', default=get_last_exp(), help=f"Directory of exp (default: {get_last_exp()})")
     opt= parser.parse_args()
     opt.exp_d = Path(opt.exp_d)
     main(opt)
