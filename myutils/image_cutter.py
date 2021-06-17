@@ -78,8 +78,8 @@ def imageCut(p, dshape, ishape, with_label=False, with_circle=False, stride=None
                         imgs[r, c], (x, y), 2, (0, 0, 255), 5)
 
     if with_label:
-        return imgs, labels
-    return imgs
+        return img, imgs, labels
+    return img, imgs
 
 
 def cutDatasetAndSave(p: str, output_dir: str, dshape, ishape, stride=None, with_label=False, with_circle=False):
@@ -91,7 +91,7 @@ def cutDatasetAndSave(p: str, output_dir: str, dshape, ishape, stride=None, with
         if img_p.suffix.lower() == ".jpg":
             print("Cutting", img_p)
             if with_label:
-                small_imgs, small_labels = imageCut(
+                _, small_imgs, small_labels = imageCut(
                     img_p, stride=stride, with_label=True, with_circle=with_circle, dshape=dshape, ishape=ishape)
                 for i in range(small_imgs.shape[0]):
                     for j in range(small_imgs.shape[1]):
@@ -102,7 +102,7 @@ def cutDatasetAndSave(p: str, output_dir: str, dshape, ishape, stride=None, with
                         np.savetxt(
                             str(out_dir / f"{pre}.csv"), small_label, delimiter=",", fmt="%d")
             else:
-                small_imgs = imageCut(
+                _, small_imgs = imageCut(
                     img_p, stride=stride, with_label=False, with_circle=with_circle, dshape=dshape, ishape=ishape)
                 for i in range(small_imgs.shape[0]):
                     for j in range(small_imgs.shape[1]):

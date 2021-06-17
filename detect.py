@@ -107,8 +107,8 @@ def detect(opt):
 
                     if save_img or opt.save_crop or view_img:  # Add bbox to image
                         c = int(cls)  # integer class
-                        label = None if opt.hide_labels else (names[c] if opt.hide_conf else f'{names[c]} {conf:.2f}')
-                        plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=opt.line_thickness)
+                        label = None if opt.hide_labels else (f'{int(conf*100)}' if opt.hide_name else f'{names[c]} {conf:.2f}')
+                        plot_one_box(xyxy, im0, label=label, color=(0, 0, 255), line_thickness=opt.line_thickness)
                         if opt.save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
@@ -167,8 +167,9 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--line-thickness', default=3, type=int, help='bounding box thickness (pixels)')
-    parser.add_argument('--hide-labels', default=False, action='store_true', help='hide labels')
-    parser.add_argument('--hide-conf', default=False, action='store_true', help='hide confidences')
+    parser.add_argument('--hide-labels', action='store_true', help='hide labels')
+    parser.add_argument('--hide-conf', action='store_true', help='hide confidences')
+    parser.add_argument('--hide-name', action='store_true', help='hide class name')
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
