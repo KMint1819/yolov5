@@ -1,6 +1,7 @@
 .vscode
 uploads/*
 !uploads/*.py
+!uploads/*.md
 dataset/
 weights/lssh*
 weights/ncu*

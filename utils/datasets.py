@@ -163,7 +163,7 @@ class LoadRiceImages:
 
         # Read image
         self.count += 1
-        imgs0 = imageCut(path, self.dshape, self.ishape, stride=self.img_stride)
+        big_img, imgs0 = imageCut(path, self.dshape, self.ishape, stride=self.img_stride)
         print(
             f'image {self.count}/{self.nf}, {imgs0.shape[0]}x{imgs0.shape[1]} slices, {path}: \n', end='')
 
@@ -175,7 +175,7 @@ class LoadRiceImages:
                 imgs[r, c] = np.ascontiguousarray(
                     img[:, :, ::-1].transpose(2, 0, 1))  # BGR to RGB, to 3x416x416
 
-        return path, imgs, imgs0, self.cap
+        return path, imgs, imgs0, self.cap, big_img
 
     def __len__(self):
         return self.nf  # number of files
